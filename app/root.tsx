@@ -1,18 +1,36 @@
-import { LinksFunction } from "@remix-run/cloudflare";
+import { json, LinksFunction, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import {
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "@remix-run/react";
 import stylesheet from "~/globals.css?url";
+import { combineHeaders, getPrivateKey } from "./lib/session";
+import { usePrivateKeySession } from "./usePrivateKeySession";
+import { Toaster } from "~/components/ui/sonner";
 
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: stylesheet },
 ];
 
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const { privateKey, headers: toastHeaders } = await getPrivateKey(request, context.cloudflare.env)
+
+  return json({
+    privateKey,
+    ENV: {},
+  }, {
+    headers: combineHeaders(toastHeaders),
+  })
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useLoaderData<typeof loader>()
+  usePrivateKeySession(data?.privateKey)
+
   return (
     <html lang="en">
       <head>
@@ -22,7 +40,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
+        <div className="w-full h-screen flex items-center justify-center px-4">
+          {children}
+        </div>
+        <Toaster closeButton position="top-right" />
         <ScrollRestoration />
         <Scripts />
       </body>

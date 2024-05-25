@@ -12,9 +12,17 @@ async function sha256(string: string) {
   return hashHex;
 }
 
-type Policies = {
+export type Policies = {
   password: string,
   uuid?: string
+}
+
+export type Store = {
+  policy: any,
+  hint: string,
+  cs: string,
+  address: string,
+  key: string
 }
 
 export async function createNewWallet(policies: Policies) {
@@ -26,7 +34,7 @@ export async function createNewWallet(policies: Policies) {
   const privateKey = generatePrivateKey()
   const account = privateKeyToAccount(privateKey)
 
-  const store = {
+  const store: Store = {
     policy: setup.policy,
     hint: (await sha256(policies.password)).slice(-2),
     cs: await sha256(setup.key.toString("hex")),
@@ -40,7 +48,7 @@ export async function createNewWallet(policies: Policies) {
   }
 }
 
-export async function deriveWallet(store: any, policies: Policies) {
+export async function deriveWallet(store: Store, policies: Policies) {
   const derived = await mfkdf.policy.derive(store.policy, {
     password: mfkdf.derive.factors.password(policies.password),
     uuid: mfkdf.derive.factors.uuid('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),

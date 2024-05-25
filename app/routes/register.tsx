@@ -1,19 +1,46 @@
-import { Link } from "@remix-run/react"
-import { Button } from "~/components/ui/button"
+import { ActionFunctionArgs, json } from "@remix-run/cloudflare";
+import { Form, Link, useActionData } from "@remix-run/react";
+import { useEffect } from "react";
+import { Button } from "~/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card"
-import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
+} from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { createNewWallet } from "~/lib/mfkdf";
+import { redirectWithPrivateKey } from "~/lib/session";
+
+export async function action({ request, context }: ActionFunctionArgs) {
+  const { MY_KV: myKv } = context.cloudflare.env
+  const body = await request.formData();
+  const password = body.get("password");
+  const exists = await myKv.get("test");
+
+  // if (exists) {
+  //   return json({ status: 400, error: "User already exists" }, { status: 400 });
+  // }
+
+  if (password == null || typeof password !== "string") {
+    return { status: 400, error: "Password is required" };
+  }
+
+  const { store, privateKey } = await createNewWallet({
+    password: password,
+  });
+
+  await myKv.put("test", JSON.stringify(store));
+
+  return redirectWithPrivateKey("/?index", privateKey, {}, context.cloudflare.env)
+}
 
 export default function RegisterForm() {
   return (
-    <div className="w-full h-screen flex items-center justify-center px-4">
-      <Card className="mx-auto max-w-sm">
+    <Form method="post" className="w-full h-screen flex items-center justify-center px-4">
+      <Card className="mx-auto w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Sign Up</CardTitle>
           <CardDescription>
@@ -22,34 +49,26 @@ export default function RegisterForm() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="first-name">First name</Label>
-                <Input id="first-name" placeholder="Max" required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="last-name">Last name</Label>
-                <Input id="last-name" placeholder="Robinson" required />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" placeholder="Vitalik" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                value={"m@example.com"}
                 placeholder="m@example.com"
                 required
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" />
+              <Input id="password" type="password" name="password" />
             </div>
             <Button type="submit" className="w-full">
               Create an account
-            </Button>
-            <Button variant="outline" className="w-full">
-              Sign up with GitHub
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">
@@ -60,6 +79,6 @@ export default function RegisterForm() {
           </div>
         </CardContent>
       </Card>
-    </div>
-  )
+    </Form>
+  );
 }
