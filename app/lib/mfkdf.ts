@@ -14,7 +14,9 @@ async function sha256(string: string) {
 
 export type Policies = {
   password: string,
-  uuid?: string
+  username: string,
+  totp?: number,
+  session: string | null // Browser session
 }
 
 export type Store = {
@@ -28,7 +30,11 @@ export type Store = {
 export async function createNewWallet(policies: Policies) {
   const setup = await mfkdf.policy.setup(await mfkdf.policy.atLeast(2, [
     await mfkdf.setup.factors.password(policies.password),
-    await mfkdf.setup.factors.uuid({ uuid: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d' })
+    await mfkdf.setup.factors.uuid({ uuid: policies.session }),
+    await mfkdf.setup.factors.totp({
+      issuer: "Wallet C",
+      label: policies.username,
+    }),
   ]))
 
   const privateKey = generatePrivateKey()
@@ -42,8 +48,12 @@ export async function createNewWallet(policies: Policies) {
     key: (await setup.encrypt(privateKey, "aes256")).toString("hex"),
   }
 
+  const inner = Object.values(setup.outputs)[0];
+  const totp = inner.outputs.totp;
+
   return {
     store,
+    totp,
     privateKey
   }
 }
@@ -51,7 +61,10 @@ export async function createNewWallet(policies: Policies) {
 export async function deriveWallet(store: Store, policies: Policies) {
   const derived = await mfkdf.policy.derive(store.policy, {
     password: mfkdf.derive.factors.password(policies.password),
-    uuid: mfkdf.derive.factors.uuid('9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d'),
+    uuid: mfkdf.derive.factors.uuid(policies.session),
+    ...(policies.totp ? {
+      totp: mfkdf.derive.factors.totp(policies.totp),
+    } : {})
   });
 
   const cs = await sha256(derived.key.toString("hex"));

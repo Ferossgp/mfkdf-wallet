@@ -83,11 +83,9 @@ export default function SessionSignModal() {
       approveLoader={{ active: isLoadingApprove }}
       rejectLoader={{ active: isLoadingReject }}
     >
-      <div>
-        <div>
-          <h5>Message</h5>
-          <p>{message}</p>
-        </div>
+      <div className="flex flex-col gap-4">
+        <h5 className="text-xl">Message</h5>
+        <p>{message}</p>
       </div>
     </RequestModal>
   );

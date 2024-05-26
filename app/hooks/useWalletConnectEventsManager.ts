@@ -80,7 +80,7 @@ export default function useWalletConnectEventsManager(initialized: boolean) {
    * Set up WalletConnect event listeners
    *****************************************************************************/
   useEffect(() => {
-    if (initialized && web3wallet) {
+    if (initialized) {
       //sign
       web3wallet.on('session_proposal', onSessionProposal)
       web3wallet.on('session_request', onSessionRequest)
@@ -96,5 +96,5 @@ export default function useWalletConnectEventsManager(initialized: boolean) {
       // load sessions on init
       SettingsStore.setSessions(Object.values(web3wallet.getActiveSessions()))
     }
-  }, [initialized, onAuthRequest, onSessionProposal, onSessionRequest])
+  }, [initialized, onAuthRequest, onSessionAuthenticate, onSessionProposal, onSessionRequest])
 }

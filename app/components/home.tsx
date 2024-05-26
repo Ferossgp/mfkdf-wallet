@@ -25,18 +25,20 @@ export const HomeScreen: React.FC = () => {
     // if for some reason, the proposal is not received, we need to close the modal when the pairing expires (5mins)
     const pairingExpiredListener = ({ topic }: { topic: string }) => {
       if (pairingTopic === topic) {
-        toast('Pairing expired. Please try again with new Connection URI', 'error')
+        toast.error('Pairing expired. Please try again with new Connection URI')
         ModalStore.close()
         web3wallet.core.pairing.events.removeListener('pairing_expire', pairingExpiredListener)
       }
     }
+
     web3wallet.once('session_proposal', () => {
       web3wallet.core.pairing.events.removeListener('pairing_expire', pairingExpiredListener)
     })
+
     try {
       setLoading(true)
       web3wallet.core.pairing.events.on('pairing_expire', pairingExpiredListener)
-      await web3wallet.pair({ uri, activatePairing: true })
+      await web3wallet.core.pairing.pair({ uri, activatePairing: false })
       toast.success('Connected successfully')
     } catch (error) {
       toast.error((error as Error).message)
